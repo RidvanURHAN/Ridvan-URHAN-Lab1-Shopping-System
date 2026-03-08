@@ -1,0 +1,84 @@
+digraph CheckoutSystem {
+    rankdir=TB;
+    node [shape=box, style=rounded, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    START [shape=circle, style=filled, fillcolor=lightgreen];
+    END [shape=circle, style=filled, fillcolor=lightgreen];
+    EXIT [shape=circle, style=filled, fillcolor=salmon, label="EXIT SYSTEM"];
+
+    // KONTROL NOKTASI 1: Kullanıcı Girişi
+    START -> CheckCreds;
+    CheckCreds [shape=diamond, label="Credentials Valid?"];
+    CheckCreds -> GenerateToken [label="YES"];
+    CheckCreds -> EXIT [label="NO"];
+
+    GenerateToken [label="Generate Session Token\nSet session_active = TRUE"];
+    GenerateToken -> LoopAdd;
+    
+    // KONTROL NOKTASI 2: Sepete Ekleme ve Stok Kontrolü
+    LoopAdd [shape=diamond, label="Add More Products?"];
+    LoopAdd -> CheckStockAdd [label="YES"];
+    LoopAdd -> CheckDiscountCode [label="NO"];
+
+    CheckStockAdd [shape=diamond, label="Stock >= Requested?"];
+    CheckStockAdd -> InsertCart [label="YES"];
+    CheckStockAdd -> ErrorStock [label="NO"];
+
+    InsertCart [label="Insert to Cart\nUpdate Subtotal"];
+    ErrorStock [label="Print Stock Error"];
+    
+    InsertCart -> LoopAdd;
+    ErrorStock -> LoopAdd;
+
+    // KONTROL NOKTASI 3: İndirim Kodu
+    CheckDiscountCode [shape=diamond, label="Has Discount Code?"];
+    CheckDiscountCode -> ValidateCode [label="YES"];
+    CheckDiscountCode -> CalcShipping [label="NO"];
+
+    ValidateCode [shape=diamond, label="Valid & Conditions Met?"];
+    ValidateCode -> ApplyDiscount [label="YES"];
+    ValidateCode -> ErrorCode [label="NO"];
+
+    ApplyDiscount [label="Apply Discount\nUpdate Subtotal"];
+    ErrorCode [label="Print Invalid Code Error"];
+
+    ApplyDiscount -> CalcShipping;
+    ErrorCode -> CalcShipping;
+
+    // KONTROL NOKTASI 4: Kargo Ücreti
+    CalcShipping [label="Calculate Base Shipping Fee"];
+    CalcShipping -> CheckFreeShip;
+    
+    CheckFreeShip [shape=diamond, label="Subtotal >= Free Threshold?"];
+    CheckFreeShip -> SetFreeShip [label="YES"];
+    CheckFreeShip -> CalcTotal [label="NO"];
+
+    SetFreeShip [label="Shipping Fee = 0"];
+    SetFreeShip -> CalcTotal;
+
+    CalcTotal [label="Calculate Final Total"];
+    CalcTotal -> LoopCheckFinalStock;
+
+    // KONTROL NOKTASI 5: Ödeme ve Sipariş Tamamlama
+    LoopCheckFinalStock [shape=diamond, label="Items Left to Check?"];
+    LoopCheckFinalStock -> FinalStockCheck [label="YES"];
+    LoopCheckFinalStock -> ProcessPayment [label="NO"];
+
+    FinalStockCheck [shape=diamond, label="Stock < Quantity?"];
+    FinalStockCheck -> EXIT [label="YES"];
+    FinalStockCheck -> LoopCheckFinalStock [label="NO"];
+
+    ProcessPayment [label="Request Bank Gateway"];
+    ProcessPayment -> RequestBank;
+    
+    RequestBank [shape=diamond, label="Payment Success?"];
+    RequestBank -> FinalizeOrder [label="YES"];
+    RequestBank -> DeclinePayment [label="NO"];
+
+    FinalizeOrder [label="Deduct Stock\nSave Order\nClear Cart"];
+    DeclinePayment [label="Print Payment Declined"];
+
+    FinalizeOrder -> END;
+    DeclinePayment -> END;
+}
