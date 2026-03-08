@@ -1,0 +1,52 @@
+graph TD
+    START([START]) --> CheckCreds{Credentials Valid?}
+    
+    %% KONTROL NOKTASI 1
+    CheckCreds -->|YES| GenerateToken[Generate Session Token <br> Set session = TRUE]
+    CheckCreds -->|NO| EXIT([EXIT SYSTEM])
+
+    GenerateToken --> LoopAdd{Add More Products?}
+    
+    %% KONTROL NOKTASI 2
+    LoopAdd -->|YES| CheckStockAdd{Stock >= Requested?}
+    LoopAdd -->|NO| CheckDiscountCode{Has Discount Code?}
+
+    CheckStockAdd -->|YES| InsertCart[Insert to Cart & Update Subtotal]
+    CheckStockAdd -->|NO| ErrorStock[Print Stock Error]
+    
+    InsertCart --> LoopAdd
+    ErrorStock --> LoopAdd
+
+    %% KONTROL NOKTASI 3
+    CheckDiscountCode -->|YES| ValidateCode{Valid & Conditions Met?}
+    CheckDiscountCode -->|NO| CalcShipping[Calculate Base Shipping Fee]
+
+    ValidateCode -->|YES| ApplyDiscount[Apply Discount & Update Subtotal]
+    ValidateCode -->|NO| ErrorCode[Print Invalid Code Error]
+
+    ApplyDiscount --> CalcShipping
+    ErrorCode --> CalcShipping
+
+    %% KONTROL NOKTASI 4
+    CalcShipping --> CheckFreeShip{Subtotal >= Free Threshold?}
+    CheckFreeShip -->|YES| SetFreeShip[Shipping Fee = 0]
+    CheckFreeShip -->|NO| CalcTotal[Calculate Final Total]
+
+    SetFreeShip --> CalcTotal
+
+    %% KONTROL NOKTASI 5
+    CalcTotal --> LoopCheckFinalStock{Items Left to Check?}
+    
+    LoopCheckFinalStock -->|YES| FinalStockCheck{Stock < Quantity?}
+    LoopCheckFinalStock -->|NO| ProcessPayment[Request Bank Gateway]
+
+    FinalStockCheck -->|YES| EXIT
+    FinalStockCheck -->|NO| LoopCheckFinalStock
+
+    ProcessPayment --> RequestBank{Payment Success?}
+    
+    RequestBank -->|YES| FinalizeOrder[Deduct Stock <br> Save Order <br> Clear Cart]
+    RequestBank -->|NO| DeclinePayment[Print Payment Declined]
+
+    FinalizeOrder --> END([END])
+    DeclinePayment --> END
